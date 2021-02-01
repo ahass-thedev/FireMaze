@@ -1,4 +1,3 @@
-from numpy import random
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import colors
@@ -14,6 +13,7 @@ class Maze():
             a=[0, 1],
             size=(dim, dim),
             p=[1 - percent, percent])
+
         # idx = np.flatnonzero(mazeArry)
         # print("idx: " , idx)
         # N = np.count_nonzero(mazeArry != 0) - int(round(.25 * mazeArry.size))
