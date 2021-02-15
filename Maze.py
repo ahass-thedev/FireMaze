@@ -30,48 +30,70 @@ class Maze:
         wall_percent = wall_percent / 100
         # mazeArry = random.randint(2, size=(dim, dim))
         # randomly create 2D arrau with the correct percentages of walls and open space
-        """
+
         self.maze = np.random.choice(
             a=[0, 1],
             size=(dim, dim),
             p=[1 - wall_percent, wall_percent])
-        """
 
-        """
         # set the maze on fire - selecting only white space
         for x in range(0, dim):
             for y in range(0, dim):
                 if self.maze[x][y] == 0:
                     if random.uniform(0, 1) <= q:  # q is the fire spread rate chosen by user
                         self.maze[x][y] = 2
-        """
 
-        # print("Before the fire spread")
-        # print(self.maze)
-        # self.maze = self.advance_fire_one_step
+        print("Before the fire spread")
+        print(self.maze)
+        # self.display_maze()
+        # self.advance_fire_one_step()
 
         # ensures the first spot is open
-        # self.maze[0][0] = 0
-        # self.maze[1][1] = 1
+        self.maze[0][0] = 0
+        # elf.maze[1][1] = 1
         # ensures the goal spot is open
-        # self.maze[dim - 1][dim - 1] = 0
+        self.maze[dim - 1][dim - 1] = 0
+        self.maze[3][3] = 2
         # attempts to find a solved path
-        # path, nodes_visited = self.a_star()
+        path, nodes_visited = self.a_star()
         # print("Solved Path: ", path)
         # self.path = path
 
         # highlights the open path
-        # for x, y in path:
-        #   self.maze[x][y] = 3
+        for x, y in path:
+            self.maze[x][y] = 3
         # print("After the fire spread")
-        # print(self.maze)
+        print(self.maze)
         # print("Wall & Fire Percentage: ", np.count_nonzero(self.maze != 0) / float(self.maze.size))
         # print("Amount of nodes visited", nodes_visited)
         # print("Length of path", len(path))
 
         # calls to display the solved path
         # self.fire_maze_runner()
-        # self.display_maze()
+        self.display_maze()
+        for x, y in path:
+            self.maze[x][y] = 0
+
+        count = 0
+        for i in range (len(self.maze)):
+            for j in range (len(self.maze[i])):
+                if self.maze[i][j] == 2:
+                    count += 1
+        print("Current fire in maze is: ", count)
+        self.advance_fire_one_step()
+        path, nodes_visited = self.a_star()
+        for x, y in path:
+            self.maze[x][y] = 3
+        count = 0
+        for i in range (len(self.maze)):
+            for j in range (len(self.maze[i])):
+                if self.maze[i][j] == 2:
+                    count += 1
+        print("After fire in maze is: ", count)
+        # self.advance_fire_one_step()
+        self.display_maze()
+
+        """
         density_vs_nodes = pd.DataFrame(columns=('Density', 'Average Nodes'))
         total_nodes = 0
         i = 0
@@ -123,19 +145,16 @@ class Maze:
         print(density_vs_nodes.head())
         density_vs_nodes.plot(x="Density", y="Average Nodes")
         plt.show()
+        """
 
     def display_maze(self):
         """check if there is fire in the maze"""
-        if np.any(self.maze == 2):
-            colormap = colors.ListedColormap(["white", "black", "orange", "green"])
-        else:
-            """if no fire choose only walls, path and path colors"""
-            colormap = colors.ListedColormap(["white", "black", "green"])
+
         # plt.figure(figsize=(5, 5))
         fig, ax = plt.subplots(figsize=(7, 7))  # setting size of plot window
         # plt.imshow(self.maze)
 
-        ax.imshow(self.maze, cmap=colormap)
+        ax.imshow(self.maze)
         ax.scatter(0, 0, marker="*", color="cyan", s=200)  # show the beginning star
         ax.scatter(self.dim - 1, self.dim - 1, marker="*", color="yellow", s=200)  # show the goal
         plt.show()  # display the solved maze
@@ -195,6 +214,7 @@ class Maze:
         while open_list:
             # while len(open_list) > 0:
             nodes_visited += 1
+            # self.advance_fire_one_step()
             current_node = open_list[0]
             if nodes_visited % 500 == 0:
                 print(nodes_visited)
@@ -256,21 +276,25 @@ class Maze:
         tempmaze = self.maze
         neighbors = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
         k = 0
+        print("Advancing fire one step")
         for x in range(0, self.dim):
             for y in range(0, self.dim):
-                if tempmaze[x][y] != 1 and tempmaze[x][y] != 2:
-
+                if self.maze[x][y] == 0:
+                    # print("Empty path at", x, " ", y)
                     for i, j in neighbors:
                         if x + i < self.dim and y + j < self.dim:
-                            if tempmaze[x + i][y + j] == 2:
+                            if self.maze[x + i][y + j] == 2:
+                                # print("Neighbor is on fire at", x, " ", y)
                                 k += 1
                     prob = 1 - (1 - self.q) ** k
+                    k = 0
 
                     if random.uniform(0, 1) <= prob:
                         # self.maze[x][y] = 1
+                        self.maze[x][y] = 2
+                        # print("Fire advanced to", x, " ", y)
 
-                        tempmaze[x][y] = 2
-        return tempmaze
+        # return self.maze
 
     """calculates the euclidean distance for bfs and A*"""
 
