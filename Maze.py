@@ -29,7 +29,7 @@ class Maze:
         # set the wall rate to a decimal
         wall_percent = wall_percent / 100
         # mazeArry = random.randint(2, size=(dim, dim))
-        # randomly create 2D arrau with the correct percentages of walls and open space
+        # randomly create 2D array with the correct percentages of walls and open space
 
         self.maze = np.random.choice(
             a=[0, 1],
@@ -149,12 +149,18 @@ class Maze:
 
     def display_maze(self):
         """check if there is fire in the maze"""
+        if np.any(self.maze == 2):
+            colormap = colors.ListedColormap(["white", "black", "orange", "green"])
+        else:
+            """if no fire choose only walls, path and path colors"""
+            colormap = colors.ListedColormap(["white", "black", "green"])
+
 
         # plt.figure(figsize=(5, 5))
         fig, ax = plt.subplots(figsize=(7, 7))  # setting size of plot window
         # plt.imshow(self.maze)
 
-        ax.imshow(self.maze)
+        ax.imshow(self.maze,cmap=colormap)
         ax.scatter(0, 0, marker="*", color="cyan", s=200)  # show the beginning star
         ax.scatter(self.dim - 1, self.dim - 1, marker="*", color="yellow", s=200)  # show the goal
         plt.show()  # display the solved maze
@@ -212,7 +218,6 @@ class Maze:
         open_list.append(start_node)
 
         while open_list:
-            # while len(open_list) > 0:
             nodes_visited += 1
             # self.advance_fire_one_step()
             current_node = open_list[0]
