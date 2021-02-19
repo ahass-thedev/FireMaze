@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random
 from matplotlib import colors
-from itertools import product
 import pandas as pd
 
 
@@ -20,30 +19,54 @@ class Node:
         return self.position == other.position
 
 
+def get_path(current_node):
+    path = []
+    current = current_node
+    while current is not None:
+        path.append(current.position)
+        current = current.parent
+    return path[::-1]
+
+
+"""calculates the euclidean distance for A*"""
+
+
+def euclid_dist(x, y):
+    # return np.sqrt((self.dim - 1 - x) ** 2 + (self.dim - 1 - y) ** 2)
+    return np.sqrt(((x.position[0] - y.position[0]) ** 2) + (
+            (x.position[1] - y.position[1]) ** 2))
+
+
 class Maze:
     """Cust Maze"""
 
     def __init__(self, dim, wall_percent, q):
         self.dim = dim
         self.q = q
+        """
         # set the wall rate to a decimal
         wall_percent = wall_percent / 100
         # mazeArry = random.randint(2, size=(dim, dim))
         # randomly create 2D array with the correct percentages of walls and open space
-
         self.maze = np.random.choice(
             a=[0, 1],
             size=(dim, dim),
             p=[1 - wall_percent, wall_percent])
+        """
+        start = (0, 0)
+        end = (self.dim - 1, self.dim - 1)
 
+        """
         # set the maze on fire - selecting only white space
         for x in range(0, dim):
             for y in range(0, dim):
                 if self.maze[x][y] == 0:
                     if random.uniform(0, 1) <= q:  # q is the fire spread rate chosen by user
                         self.maze[x][y] = 2
+        """
 
-        print("Before the fire spread")
+        """
+        #print("Before the fire spread")
         print(self.maze)
         # self.display_maze()
         # self.advance_fire_one_step()
@@ -55,11 +78,13 @@ class Maze:
         self.maze[dim - 1][dim - 1] = 0
         self.maze[3][3] = 2
         # attempts to find a solved path
-        path, nodes_visited = self.a_star()
+        path, nodes_visited = self.a_star(start, end)
+
         # print("Solved Path: ", path)
         # self.path = path
 
         # highlights the open path
+        
         for x, y in path:
             self.maze[x][y] = 3
         # print("After the fire spread")
@@ -75,8 +100,8 @@ class Maze:
             self.maze[x][y] = 0
 
         count = 0
-        for i in range (len(self.maze)):
-            for j in range (len(self.maze[i])):
+        for i in range(len(self.maze)):
+            for j in range(len(self.maze[i])):
                 if self.maze[i][j] == 2:
                     count += 1
         print("Current fire in maze is: ", count)
@@ -85,46 +110,55 @@ class Maze:
         for x, y in path:
             self.maze[x][y] = 3
         count = 0
-        for i in range (len(self.maze)):
-            for j in range (len(self.maze[i])):
+        for i in range(len(self.maze)):
+            for j in range(len(self.maze[i])):
                 if self.maze[i][j] == 2:
                     count += 1
         print("After fire in maze is: ", count)
         # self.advance_fire_one_step()
         self.display_maze()
-
         """
-        density_vs_nodes = pd.DataFrame(columns=('Density', 'Average Nodes'))
+        density_vs_nodes = pd.DataFrame(columns=('Ignition rate', 'Success Rate'))
         total_nodes = 0
         i = 0
-        attempts = 0
+        # attempts = 0
         n_trials = 0
-        for density in np.arange(0.6, 1, 0.1):
+        for self.q in np.arange(0.11, 1, 0.05):
             total_nodes = 0
             successful_attempts = 0
-            while successful_attempts < 10:
+            attempts = 0
+            print("Setting new ignition rate:", self.q)
+            while attempts < 10:
                 print("Successful attempts so far", successful_attempts)
                 self.maze = np.random.choice(
                     a=[0, 1],
                     size=(dim, dim),
-                    p=[1 - density, density])
+                    p=[1 - .30, .30])
                 self.maze[0][0] = 0
                 self.maze[dim - 1][dim - 1] = 0
+
+                for x in range(0, dim):
+                    for y in range(0, dim):
+                        if self.maze[x][y] == 0:
+                            if random.uniform(0, 1) <= self.q:  # q is the fire spread rate chosen by user
+                                self.maze[x][y] = 2
                 try:
-                    path, nodes_visited = self.a_star()
+                    path, nodes_visited = self.a_star(start, end)
                     # for x, y in path:
                     # self.maze[x][y] = 3
                     # self.display_maze()
                     if attempts == -1:
                         print(
-                            f"Test {n_trials} has failed multiple times at current density {density} and will not repeat")
+                            f"Test {n_trials} has failed multiple times at current ignition rate {self.q} and will "
+                            f"not repeat")
                         n_trials += 1
                         attempts = 0
                         continue
                     if nodes_visited == -1:
                         print("No path found, rerunning test")
                         attempts += 1
-                        print(f"Current trial:  {successful_attempts} ,Attempt:  {attempts}  at {density} density")
+                        print(
+                            f"Current trial:  {successful_attempts} ,Attempt:  {attempts}  at {self.q} density")
                         continue
                 except:
                     print("An error has occurred, rerunning test")
@@ -132,20 +166,24 @@ class Maze:
                     continue
                 total_nodes += nodes_visited
                 # attempts = 0
+                # for x, y in path:
+                # self.maze[x][y] = 3
+                # self.display_maze()
+                print(self.maze)
                 successful_attempts += 1
-                print("Density", density)
+                attempts += 1
+                print("Ignition rate", self.q)
                 print("Nodes visited", nodes_visited)
                 n_trials += 1
 
-            average_nodes = total_nodes / successful_attempts
-            density_vs_nodes.loc[i] = [density, average_nodes]
-            density_vs_nodes.to_csv("density_vs_nodes.csv", mode='a', index=False)
+            success_rate = successful_attempts / attempts
+            density_vs_nodes.loc[i] = [self.q, success_rate]
+            density_vs_nodes.to_csv("astar_fire_success.csv", mode='a', index=False)
             i += 1
 
         print(density_vs_nodes.head())
-        density_vs_nodes.plot(x="Density", y="Average Nodes")
+        density_vs_nodes.plot(x="Ignition rate", y="Success Rate")
         plt.show()
-        """
 
     def display_maze(self):
         """check if there is fire in the maze"""
@@ -155,12 +193,11 @@ class Maze:
             """if no fire choose only walls, path and path colors"""
             colormap = colors.ListedColormap(["white", "black", "green"])
 
-
         # plt.figure(figsize=(5, 5))
         fig, ax = plt.subplots(figsize=(7, 7))  # setting size of plot window
         # plt.imshow(self.maze)
 
-        ax.imshow(self.maze,cmap=colormap)
+        ax.imshow(self.maze, cmap=colormap)
         ax.scatter(0, 0, marker="*", color="cyan", s=200)  # show the beginning star
         ax.scatter(self.dim - 1, self.dim - 1, marker="*", color="yellow", s=200)  # show the goal
         plt.show()  # display the solved maze
@@ -171,11 +208,10 @@ class Maze:
     def bfs(self, start, end):
         """BFS Implementation goes here"""
 
-    def a_star(self):
+    def a_star(self, start, end):
 
         """A* Implementation goes here"""
-        start = (0, 0)
-        end = (self.dim - 1, self.dim - 1)
+
         neighbors = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
 
         '''
@@ -205,48 +241,41 @@ class Maze:
         '''
 
         start_node = Node(None, start)
-        start_node.g = start_node.h = start_node.f = 0
         end_node = Node(None, end)
+        start_node.g = start_node.h = start_node.f = 0
         end_node.g = end_node.h = end_node.f = 0
         nodes_visited = 0
 
-        open_list = []
+        fringe = []
         closed_list = []
-        empty_list = []
-        path_exists = False
 
-        open_list.append(start_node)
+        fringe.append(start_node)
+        blocked_nodes = 0
+        for i in range(len(self.maze)):
+            for j in range(len(self.maze[i])):
+                if self.maze[i][j] != 0:
+                    blocked_nodes += 1
 
-        while open_list:
+        while fringe:
             nodes_visited += 1
-            # self.advance_fire_one_step()
-            current_node = open_list[0]
+
+            current_node = fringe[0]
             if nodes_visited % 500 == 0:
                 print(nodes_visited)
+                print("Fire has advanced 500x")
             current_index = 0
-            for index, item in enumerate(open_list):
+            for index, item in enumerate(fringe):
                 if item.f < current_node.f:
                     current_node = item
                     current_index = index
-            open_list.pop(current_index)
+            fringe.pop(current_index)
             closed_list.append(current_node)
-            if current_node == end_node:
-                path_exists = True
-                path = []
-                current = current_node
-                while current is not None:
-                    path.append(current.position)
-                    current = current.parent
-                return path[::-1], nodes_visited
 
-            if nodes_visited > 10000:
-                path_exists = False
-                path = []
-                current = current_node
-                while current is not None:
-                    path.append(current.position)
-                    current = current.parent
-                return path[::-1], -1
+            if current_node == end_node:
+                return get_path(current_node), nodes_visited
+
+            if nodes_visited > (self.dim * self.dim - blocked_nodes):
+                return get_path(current_node), -1
 
             children = []
             for new_position in neighbors:
@@ -263,25 +292,22 @@ class Maze:
                 children.append(new_node)
 
             for child in children:
-
                 for closed_child in closed_list:
                     if child == closed_child:
                         continue
                 child.g = current_node.g + 1
-                child.h = ((child.position[0] - end_node.position[0]) ** 2) + (
-                        (child.position[1] - end_node.position[1]) ** 2)
+                child.h = euclid_dist(child, end_node)
                 child.f = child.g + child.h
-                for open_node in open_list:
+                for open_node in fringe:
                     if child == open_node and child.g > open_node.g:
                         continue
-                open_list.append(child)
+                fringe.append(child)
 
     def advance_fire_one_step(self):
         """Look at project description for comments"""
-        tempmaze = self.maze
         neighbors = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
         k = 0
-        print("Advancing fire one step")
+        # print("Advancing fire one step")
         for x in range(0, self.dim):
             for y in range(0, self.dim):
                 if self.maze[x][y] == 0:
@@ -300,23 +326,6 @@ class Maze:
                         # print("Fire advanced to", x, " ", y)
 
         # return self.maze
-
-    """calculates the euclidean distance for bfs and A*"""
-
-    def euclid_dist(self, x, y):
-        return np.sqrt((self.dim - 1 - x) ** 2 + (self.dim - 1 - y) ** 2)
-
-    """return a full list of coords of a node's neighbors"""
-
-    def total_cost(self, node, goal):
-        return node.cost + self.euclid_dist(node, goal)
-
-    """returns a list of the current positions """
-
-    def neighbors_list(self, size):
-        for c in product(*(range(n - 1, n + 2) for n in self)):
-            if c != self and all(0 <= n < size for n in c):
-                yield c
 
 
 if __name__ == '__main__':
