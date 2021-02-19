@@ -123,7 +123,7 @@ class Maze:
         i = 0
         # attempts = 0
         n_trials = 0
-        for self.q in np.arange(0.11, 1, 0.05):
+        for self.q in np.arange(0.05, 1, 0.05):
             total_nodes = 0
             successful_attempts = 0
             attempts = 0
@@ -166,9 +166,9 @@ class Maze:
                     continue
                 total_nodes += nodes_visited
                 # attempts = 0
-                # for x, y in path:
-                # self.maze[x][y] = 3
-                # self.display_maze()
+                for x, y in path:
+                    self.maze[x][y] = 3
+                self.display_maze()
                 print(self.maze)
                 successful_attempts += 1
                 attempts += 1
@@ -178,13 +178,66 @@ class Maze:
 
             success_rate = successful_attempts / attempts
             density_vs_nodes.loc[i] = [self.q, success_rate]
-            density_vs_nodes.to_csv("astar_fire_success.csv", mode='a', index=False)
+            density_vs_nodes.to_csv("strat3_fire_success.csv", mode='a', index=False)
             i += 1
 
         print(density_vs_nodes.head())
         density_vs_nodes.plot(x="Ignition rate", y="Success Rate")
         plt.show()
 
+        """
+        density_vs_nodes = pd.DataFrame(columns=('Density', 'Average Nodes'))
+        total_nodes = 0
+        i = 0
+        attempts = 0
+        n_trials = 0
+        for density in np.arange(0.6, 1, 0.1):
+            total_nodes = 0
+            successful_attempts = 0
+            while successful_attempts < 10:
+                print("Successful attempts so far", successful_attempts)
+                self.maze = np.random.choice(
+                    a=[0, 1],
+                    size=(dim, dim),
+                    p=[1 - density, density])
+                self.maze[0][0] = 0
+                self.maze[dim - 1][dim - 1] = 0
+                try:
+                    path, nodes_visited = self.a_star()
+                    # for x, y in path:
+                    # self.maze[x][y] = 3
+                    # self.display_maze()
+                    if attempts == -1:
+                        print(
+                            f"Test {n_trials} has failed multiple times at current density {density} and will not repeat")
+                        n_trials += 1
+                        attempts = 0
+                        continue
+                    if nodes_visited == -1:
+                        print("No path found, rerunning test")
+                        attempts += 1
+                        print(f"Current trial:  {successful_attempts} ,Attempt:  {attempts}  at {density} density")
+                        continue
+                except:
+                    print("An error has occurred, rerunning test")
+                    attempts += 1
+                    continue
+                total_nodes += nodes_visited
+                # attempts = 0
+                successful_attempts += 1
+                print("Density", density)
+                print("Nodes visited", nodes_visited)
+                n_trials += 1
+
+            average_nodes = total_nodes / successful_attempts
+            density_vs_nodes.loc[i] = [density, average_nodes]
+            density_vs_nodes.to_csv("density_vs_nodes.csv", mode='a', index=False)
+            i += 1
+
+        print(density_vs_nodes.head())
+        density_vs_nodes.plot(x="Density", y="Average Nodes")
+        plt.show()
+        """
     def display_maze(self):
         """check if there is fire in the maze"""
         if np.any(self.maze == 2):
@@ -297,7 +350,9 @@ class Maze:
                         continue
                 child.g = current_node.g + 1
                 child.h = euclid_dist(child, end_node)
-                child.f = child.g + child.h
+                child.f = child.g + child.h + self.get_ignition_rate(child)/100
+                print(self.get_ignition_rate(child))
+
                 for open_node in fringe:
                     if child == open_node and child.g > open_node.g:
                         continue
@@ -326,6 +381,16 @@ class Maze:
                         # print("Fire advanced to", x, " ", y)
 
         # return self.maze
+
+    def get_ignition_rate(self, child_node):
+        k = 0
+        neighbors = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+        if self.maze[child_node.position[0]][child_node.position[1]] == 0:
+            for i, j in neighbors:
+                if child_node.position[0] + i < self.dim and child_node.position[1] + j < self.dim:
+                    if self.maze[child_node.position[0] + i][child_node.position[1] + j] == 2:
+                        k += 1
+        return 1 - (1 - self.q) ** k
 
 
 if __name__ == '__main__':
