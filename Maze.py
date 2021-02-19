@@ -3,6 +3,7 @@ import numpy as np
 import random
 from matplotlib import colors
 import pandas as pd
+from collections import deque
 
 
 class Node:
@@ -118,12 +119,12 @@ class Maze:
         # self.advance_fire_one_step()
         self.display_maze()
         """
-        density_vs_nodes = pd.DataFrame(columns=('Ignition rate', 'Success Rate'))
+        density_vs_nodes = pd.DataFrame(columns=('Density', 'Success Rate'))
         total_nodes = 0
         i = 0
-        # attempts = 0
+        attempts = 0
         n_trials = 0
-        for self.q in np.arange(0.05, 1, 0.05):
+        for self.q in np.arange(0.0, 1, 0.05):
             total_nodes = 0
             successful_attempts = 0
             attempts = 0
@@ -160,15 +161,15 @@ class Maze:
                         print(
                             f"Current trial:  {successful_attempts} ,Attempt:  {attempts}  at {self.q} density")
                         continue
-                except:
+                except ZeroDivisionError:
                     print("An error has occurred, rerunning test")
                     attempts += 1
                     continue
                 total_nodes += nodes_visited
                 # attempts = 0
-                for x, y in path:
-                    self.maze[x][y] = 3
-                self.display_maze()
+                # for x, y in path:
+                   # self.maze[x][y] = 3
+                # self.display_maze()
                 print(self.maze)
                 successful_attempts += 1
                 attempts += 1
@@ -178,23 +179,14 @@ class Maze:
 
             success_rate = successful_attempts / attempts
             density_vs_nodes.loc[i] = [self.q, success_rate]
-            density_vs_nodes.to_csv("strat3_fire_success.csv", mode='a', index=False)
+            density_vs_nodes.to_csv("astar_fire_success.csv", mode='a', index=False)
             i += 1
 
-        print(density_vs_nodes.head())
-        density_vs_nodes.plot(x="Ignition rate", y="Success Rate")
-        plt.show()
-
-        """
-        density_vs_nodes = pd.DataFrame(columns=('Density', 'Average Nodes'))
-        total_nodes = 0
-        i = 0
-        attempts = 0
-        n_trials = 0
-        for density in np.arange(0.6, 1, 0.1):
+        """for density in np.arange(0.3, 1, 0.1):
             total_nodes = 0
             successful_attempts = 0
-            while successful_attempts < 10:
+            attempts = 0
+            while attempts < 10:
                 print("Successful attempts so far", successful_attempts)
                 self.maze = np.random.choice(
                     a=[0, 1],
@@ -203,7 +195,7 @@ class Maze:
                 self.maze[0][0] = 0
                 self.maze[dim - 1][dim - 1] = 0
                 try:
-                    path, nodes_visited = self.a_star()
+                    path, nodes_visited = self.dfs(start, end)
                     # for x, y in path:
                     # self.maze[x][y] = 3
                     # self.display_maze()
@@ -225,19 +217,20 @@ class Maze:
                 total_nodes += nodes_visited
                 # attempts = 0
                 successful_attempts += 1
+                attempts += 1
                 print("Density", density)
                 print("Nodes visited", nodes_visited)
                 n_trials += 1
 
-            average_nodes = total_nodes / successful_attempts
-            density_vs_nodes.loc[i] = [density, average_nodes]
-            density_vs_nodes.to_csv("density_vs_nodes.csv", mode='a', index=False)
-            i += 1
+            success_rate = successful_attempts / attempts
+            density_vs_nodes.loc[i] = [density, success_rate]
+            density_vs_nodes.to_csv("dfs_success.csv", mode='a', index=False)
+            i += 1"""
 
         print(density_vs_nodes.head())
-        density_vs_nodes.plot(x="Density", y="Average Nodes")
+        density_vs_nodes.plot(x="Density", y="Success Rate")
         plt.show()
-        """
+
     def display_maze(self):
         """check if there is fire in the maze"""
         if np.any(self.maze == 2):
@@ -255,11 +248,124 @@ class Maze:
         ax.scatter(self.dim - 1, self.dim - 1, marker="*", color="yellow", s=200)  # show the goal
         plt.show()  # display the solved maze
 
+    def maze2graph(self):
+        height = len(self.maze)
+        width = len(self.maze[0]) if height else 0
+        graph = {(x, y): [] for y in range(width) for x in range(height) if not self.maze[x][y]}
+        for row, col in graph.keys():
+            if row < height - 1 and not self.maze[row + 1][col]:
+                graph[(row, col)].append((row + 1, col))
+                graph[(row + 1, col)].append((row, col))
+            if col < width - 1 and not self.maze[row][col + 1]:
+                graph[(row, col)].append((row, col + 1))
+                graph[(row, col + 1)].append((row, col))
+        return graph
+
     def dfs(self, start, end):
         """DFS Implementation goes here"""
+        # use self.maze to get the maze...
+        start = start
+        goal = end
+        start_node = Node(None, start)
+        end_node = Node(None, goal)
+        stack = deque([start])
+        nodes_visited = 0
+        visited = set()
+        graph = self.maze2graph()
+        empty_visit = set()
+        has_path = False
+
+        while stack:
+            nodes_visited += 1
+            current = stack.pop()
+            # print(path)
+            # print(current)
+            if current == goal:
+                has_path = True
+                visited.add(current)
+                print("Path Exists? ", has_path)
+                return visited, nodes_visited
+            if current in visited:
+                continue
+            visited.add(current)
+            try:
+                for neighbor in graph[current]:
+                    stack.append(neighbor)
+            except KeyError:
+                continue
+        # print(visited)
+        print("Path Exists? ", has_path)
+        return empty_visit, -1
+
+    def get_bfs_path(self, path, ans):
+        current_node = ans
+        end = []
+
+        while current_node != (0, 0):
+            end.append(current_node)
+            current_node = path[current_node]
+
+        end.append((0, 0))
+        end.reverse()
+
+        return end
 
     def bfs(self, start, end):
-        """BFS Implementation goes here"""
+
+        maze_length = self.dim
+        maze_sol = (maze_length-1, maze_length-1)
+
+        visited = [[False for x in range(maze_length)] for y in range(maze_length)]
+        path = {}
+        total = 0
+        neighbors = [(0, -1), (-1, 0), (0, 1), (1, 0)]
+        path_exists = False
+
+        queue = []
+
+        nodes_visited = 0
+        queue.append((0,0))
+        visited[0][0] = True
+
+        nodes_visited = 0
+
+        while queue:
+            nodes_visited += 1
+            total = max(total, len(queue))
+
+            current_node = queue.pop()
+
+            if current_node == maze_sol:
+                path_exists = True
+                break
+
+            for child in neighbors:
+
+                spot = tuple(sum(x) for x in zip(current_node, child))
+
+                x = spot [0]
+                y = spot[1]
+
+                if 0 <= x < self.dim:
+
+                    if 0 <= y < self.dim:
+
+                        if not self.maze[x][y]:
+
+                            if not visited[x][y]:
+
+                                queue.append(spot)
+                                path[spot] = current_node
+                                visited[spot[0]][spot[1]] = True
+
+        if not path_exists:
+            path = []
+            path.append(current_node)
+            path_exists = False
+
+            return path[::-1], -1
+
+        return self.get_bfs_path(path, maze_sol), nodes_visited
 
     def a_star(self, start, end):
 
@@ -313,9 +419,9 @@ class Maze:
             nodes_visited += 1
 
             current_node = fringe[0]
-            if nodes_visited % 500 == 0:
-                print(nodes_visited)
-                print("Fire has advanced 500x")
+            # if nodes_visited % 500 == 0:
+                # print(nodes_visited)
+                # print("Fire has advanced 500x")
             current_index = 0
             for index, item in enumerate(fringe):
                 if item.f < current_node.f:
@@ -350,9 +456,7 @@ class Maze:
                         continue
                 child.g = current_node.g + 1
                 child.h = euclid_dist(child, end_node)
-                child.f = child.g + child.h + self.get_ignition_rate(child)/100
-                print(self.get_ignition_rate(child))
-
+                child.f = child.g + child.h
                 for open_node in fringe:
                     if child == open_node and child.g > open_node.g:
                         continue
@@ -381,16 +485,6 @@ class Maze:
                         # print("Fire advanced to", x, " ", y)
 
         # return self.maze
-
-    def get_ignition_rate(self, child_node):
-        k = 0
-        neighbors = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
-        if self.maze[child_node.position[0]][child_node.position[1]] == 0:
-            for i, j in neighbors:
-                if child_node.position[0] + i < self.dim and child_node.position[1] + j < self.dim:
-                    if self.maze[child_node.position[0] + i][child_node.position[1] + j] == 2:
-                        k += 1
-        return 1 - (1 - self.q) ** k
 
 
 if __name__ == '__main__':
