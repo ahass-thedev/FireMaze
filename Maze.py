@@ -15,9 +15,13 @@ class Node:
         self.g = 0
         self.h = 0
         self.f = 0
+        self.i = 0
 
     def __eq__(self, other):
         return self.position == other.position
+
+
+"""Path for BFS algorithm"""
 
 
 def get_path(current_node):
@@ -36,6 +40,24 @@ def euclid_dist(x, y):
     # return np.sqrt((self.dim - 1 - x) ** 2 + (self.dim - 1 - y) ** 2)
     return np.sqrt(((x.position[0] - y.position[0]) ** 2) + (
             (x.position[1] - y.position[1]) ** 2))
+
+
+"""Path for BFS algorithm"""
+
+
+def get_bfs_path(path, ans):
+    """Current node is set to the end node to begin path creation"""
+    current_node = ans
+    end = []
+    """moves though the nodes that were visted to create the solved path rather than all nodes visited"""
+    while current_node != (0, 0):
+        end.append(current_node)
+        current_node = path[current_node]
+    """Adds the starter node to the path then reverses it to reset the queue"""
+    end.append((0, 0))
+    end.reverse()
+    """returns the list of completed path"""
+    return end
 
 
 class Maze:
@@ -119,11 +141,61 @@ class Maze:
         # self.advance_fire_one_step()
         self.display_maze()
         """
+
+        density_vs_nodes = pd.DataFrame(columns=('Density', 'Average Nodes'))
+        total_nodes = 0
+        i = 0
+        attempts = 0
+        n_trials = 0
+        for density in np.arange(0.0, 1, 0.1):
+            total_nodes = 0
+            successful_attempts = 0
+            while successful_attempts < 10:
+                print("Successful attempts so far", successful_attempts)
+                self.maze = np.random.choice(
+                    a=[0, 1],
+                    size=(dim, dim),
+                    p=[1 - density, density])
+                self.maze[0][0] = 0
+                self.maze[dim - 1][dim - 1] = 0
+                try:
+                    path, nodes_visited = self.a_star(start, end)
+                    if attempts == -1:
+                        print(
+                            f"Test {n_trials} has failed multiple times at current density {density} and will not repeat")
+                        n_trials += 1
+                        attempts = 0
+                        continue
+                    if nodes_visited == -1:
+                        print("No path found, rerunning test")
+                        attempts += 1
+                        print(f"Current trial:  {successful_attempts} ,Attempt:  {attempts}  at {density} density")
+                        continue
+                except:
+                    print("An error has occurred, rerunning test")
+                    attempts += 1
+                    continue
+                total_nodes += nodes_visited
+                # attempts = 0
+                successful_attempts += 1
+                print("Density", density)
+                print("Nodes visited", nodes_visited)
+                n_trials += 1
+            average_nodes = total_nodes / successful_attempts
+            density_vs_nodes.loc[i] = [density, average_nodes]
+            density_vs_nodes.to_csv("density_vs_nodes.csv", mode='a', index=False)
+            i += 1
+        print(density_vs_nodes.head())
+        density_vs_nodes.plot(x="Density", y="Average Nodes")
+        plt.show()
+
+        """
         density_vs_nodes = pd.DataFrame(columns=('Ignition Rate', 'Success Rate'))
         total_nodes = 0
         i = 0
         attempts = 0
         n_trials = 0
+
         for self.q in np.arange(0.0, 1, 0.05):
             total_nodes = 0
             successful_attempts = 0
@@ -145,9 +217,9 @@ class Maze:
                                 self.maze[x][y] = 2
                 try:
                     path, nodes_visited = self.bfs(start, end)
-                    """for x, y in path:
+                    for x, y in path:
                         self.maze[x][y] = 3
-                    self.display_maze()"""
+                    self.display_maze()
                     if attempts == -1:
                         print(
                             f"Test {n_trials} has failed multiple times at current ignition rate {self.q} and will "
@@ -161,7 +233,7 @@ class Maze:
                         print(
                             f"Current trial:  {successful_attempts} ,Attempt:  {attempts}  at {self.q} Ignition rate")
                         continue
-                except ZeroDivisionError:
+                except:
                     print("An error has occurred, rerunning test")
                     attempts += 1
                     continue
@@ -173,18 +245,17 @@ class Maze:
                 print("Ignition rate", self.q)
                 print("Nodes visited", nodes_visited)
                 n_trials += 1
-            #for x, y in path:
-                #self.maze[x][y] = 3
-            #self.display_maze()
-            #print(self.maze)
+            # for x, y in path:
+            # self.maze[x][y] = 3
+            # self.display_maze()
+            # print(self.maze)
             success_rate = successful_attempts / attempts
             density_vs_nodes.loc[i] = [self.q, success_rate]
             density_vs_nodes.to_csv("bfs_fire_success.csv", mode='a', index=False)
             i += 1
         print(density_vs_nodes.head())
         density_vs_nodes.plot(x="Ignition Rate", y="Success Rate")
-        plt.show()
-
+        plt.show()"""
 
         """
         for density in np.arange(0.0, 1, 0.1):
@@ -363,26 +434,12 @@ class Maze:
         print("Path Exists? ", has_path)
         return empty_visit, -1
 
-    def get_bfs_path(self, path, ans):
-        """Current node is set to the end node to begin path creation"""
-        current_node = ans
-        end = []
-        """moves though the nodes that were visted to create the solved path rather than all nodes visited"""
-        while (current_node != (0, 0)):
-            end.append(current_node)
-            current_node = path[current_node]
-        """Adds the starter node to the path then reverses it to reset the queue"""
-        end.append((0, 0))
-        end.reverse()
-        """returns the list of completed path"""
-        return end
-
     def bfs(self, start, end):
         """Implementation of BFS"""
         """ BFS uses queue to search childern and add them to fringe"""
         """Maze length will allow to find end and the size of the maze"""
         maze_length = self.dim
-        maze_sol = (maze_length-1, maze_length-1)
+        maze_sol = (maze_length - 1, maze_length - 1)
         """The visisted list is used to define the path that finds the solution as well as identify dead ends"""
         visited = [[False for x in range(maze_length)] for y in range(maze_length)]
         """path is the final path to the solution"""
@@ -395,7 +452,7 @@ class Maze:
         queue = []
         """Nodes_visited is incremented per node visited to calcualte the total nodes"""
         nodes_visited = 0
-        queue.append((0,0))
+        queue.append((0, 0))
         visited[0][0] = True
 
         nodes_visited = 0
@@ -415,9 +472,10 @@ class Maze:
                 """This is for incrementing and moving the position of the node"""
                 spot = tuple(sum(x) for x in zip(current_node, child))
 
-                x = spot [0]
+                x = spot[0]
                 y = spot[1]
-                """These if statements are to ensure that the x and y spots are open nodes in the maze and good to move into"""
+                """These if statements are to ensure that the x and y spots are open nodes in the maze and good to 
+                move into """
                 if 0 <= x < self.dim:
 
                     if 0 <= y < self.dim:
@@ -437,13 +495,20 @@ class Maze:
             path_exists = False
 
             return path[::-1], -1
-        """Return the get path method with the solved path and end node so the path is created and not all visited nodes"""
-        return self.get_bfs_path(path, maze_sol), nodes_visited
+        """Return the get path method with the solved path and end node so the path is created and not all visited 
+        nodes """
+        return get_bfs_path(path, maze_sol), nodes_visited
 
     def a_star(self, start, end):
-
         """A* Implementation goes here"""
-
+        """Initialize new start and goal nodes"""
+        start_node = Node(None, start)
+        goal_node = Node(None, end)
+        start_node.g = start_node.h = 0
+        start_node.f = start_node.g + start_node.h
+        goal_node.g = goal_node.h = 0
+        goal_node.f = goal_node.g + goal_node.h
+        nodes_visited = 0
         neighbors = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
 
         '''
@@ -472,68 +537,86 @@ class Maze:
         return closed_list, total_cost
         '''
 
-        start_node = Node(None, start)
-        end_node = Node(None, end)
-        start_node.g = start_node.h = start_node.f = 0
-        end_node.g = end_node.h = end_node.f = 0
-        nodes_visited = 0
-
+        """Make empty fringe and closed list to keep track of visited nodes"""
         fringe = []
         closed_list = []
 
         fringe.append(start_node)
         blocked_nodes = 0
+        """Looks for the blocked nodes that the algorithm can not visit and tracks how many exist in the maze"""
         for i in range(len(self.maze)):
             for j in range(len(self.maze[i])):
                 if self.maze[i][j] != 0:
                     blocked_nodes += 1
 
+        """Continue looping until no more nodes to visit"""
         while fringe:
             nodes_visited += 1
 
-            current_node = fringe[0]
+            visiting_node = fringe.pop()
+            fringe.append(visiting_node)
             # if nodes_visited % 500 == 0:
-                # print(nodes_visited)
-                # print("Fire has advanced 500x")
+            # print(nodes_visited)
+            # print("Fire has advanced 500x")
             current_index = 0
+            """Get the visiting node and remove it from the fringe and add it to the closed list"""
             for index, item in enumerate(fringe):
-                if item.f < current_node.f:
-                    current_node = item
+                if item.f < visiting_node.f:
+                    visiting_node = item
                     current_index = index
             fringe.pop(current_index)
-            closed_list.append(current_node)
+            closed_list.append(visiting_node)
 
-            if current_node == end_node:
-                return get_path(current_node), nodes_visited
+            """If the goal is found, use backtracking to find the solved path using the node's parent"""
+            if visiting_node == goal_node:
+                return get_path(visiting_node), nodes_visited
 
+            """To prevent an infinite loop, the maximum nodes the algorithm can visit is the size of the maze minus 
+            the blocked ones """
             if nodes_visited > (self.dim * self.dim - blocked_nodes):
-                return get_path(current_node), -1
+                return get_path(visiting_node), -1
 
+            """Get the possible children of the current node"""
             children = []
-            for new_position in neighbors:
-                node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
-                if node_position[0] > (len(self.maze) - 1) or node_position[0] < 0 or node_position[1] > (
-                        len(self.maze[len(self.maze) - 1]) - 1) or node_position[1] < 0:
+            for visiting_position in neighbors:
+
+                """Create a new location based on the neighbors"""
+                visiting_position = (
+                    visiting_node.position[0] + visiting_position[0], visiting_node.position[1] + visiting_position[1])
+
+                """Check if the neighbor node that can be a child is inbounds, if not go to the next neighbor"""
+                if visiting_position[0] > self.dim - 1 or visiting_position[0] < 0 or visiting_position[1] > (
+                        len(self.maze[len(self.maze) - 1]) - 1) or visiting_position[1] < 0:
                     continue
 
-                if self.maze[node_position[0]][node_position[1]] != 0:
+                """Check that the neighbor is not a wall or fire"""
+                if self.maze[visiting_position[0]][visiting_position[1]] != 0:
                     continue
 
-                new_node = Node(current_node, node_position)
+                # if self.maze[node_position[0]][node_position[1]] == 1 or self.maze[node_position[0]][node_position[
+                # 1]] == 2: continue
+
+                new_node = Node(visiting_node, visiting_position)
 
                 children.append(new_node)
 
-            for child in children:
-                for closed_child in closed_list:
-                    if child == closed_child:
+            for new_child in children:
+                for old_child in closed_list:
+                    if new_child == old_child:
                         continue
-                child.g = current_node.g + 1
-                child.h = euclid_dist(child, end_node)
-                child.f = child.g + child.h
+                """Add 1 to the distance from the starting node"""
+                new_child.g = visiting_node.g + 1
+                """Use euclidean distance to calculate the heuristic distance"""
+                new_child.h = euclid_dist(new_child, goal_node)
+                """Strategy 3 improvement to account for the ignition rate for all the child node it could visit"""
+                # new_child.i = self.get_ignition_rate(new_child)
+                """Total calculated distance """
+                new_child.f = new_child.g + new_child.h + new_child.i
                 for open_node in fringe:
-                    if child == open_node and child.g > open_node.g:
+                    if new_child == open_node and new_child.g > open_node.g:
                         continue
-                fringe.append(child)
+                """Add the new child to the fringe of possible moves"""
+                fringe.append(new_child)
 
     def advance_fire_one_step(self):
         """Look at project description for comments"""
@@ -558,6 +641,21 @@ class Maze:
                         # print("Fire advanced to", x, " ", y)
 
         # return self.maze
+
+    def get_ignition_rate(self, child_node):
+        k = 0
+        neighbors = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+        """Check if the child node is indeed an empty space"""
+        if self.maze[child_node.position[0]][child_node.position[1]] == 0:
+            """Traverse the neighbors"""
+            for i, j in neighbors:
+                """Check that the neighbors are inbounds"""
+                if child_node.position[0] + i < self.dim and child_node.position[1] + j < self.dim:
+                    """Check if the neighbors are on fire, if they are count the neighboring fire nodes"""
+                    if self.maze[child_node.position[0] + i][child_node.position[1] + j] == 2:
+                        k += 1
+        """Return the given probability function"""
+        return 1 - (1 - self.q) ** k
 
 
 if __name__ == '__main__':
